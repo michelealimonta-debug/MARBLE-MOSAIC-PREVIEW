@@ -1,6 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const apiKey = process.env.API_KEY || '';
+const ai = new GoogleGenAI({ apiKey });
 
 /**
  * Edits an image based on a text prompt using Gemini 2.5 Flash Image.
@@ -39,15 +40,17 @@ export const editImageWithGemini = async (base64Image: string, prompt: string): 
       // We do not use responseMimeType for image generation/editing in flash-image models
     });
 
-    // Parse response to find the image part
-    if (response.candidates && response.candidates[0].content.parts) {
-        for (const part of response.candidates[0].content.parts) {
-            if (part.inlineData && part.inlineData.data) {
-                // Construct the data URL for the returned image
-                // Assuming PNG usually, but could be JPEG. The API usually returns what's requested or defaults.
-                // We'll assume the MIME type provided by the response or default to png.
-                const responseMime = part.inlineData.mimeType || 'image/png';
-                return `data:${responseMime};base64,${part.inlineData.data}`;
+    // Parse response to find the image part using optional chaining for safety
+    const candidates = response.candidates;
+    if (candidates && candidates.length > 0) {
+        const parts = candidates[0].content?.parts;
+        if (parts) {
+            for (const part of parts) {
+                if (part.inlineData && part.inlineData.data) {
+                    // Construct the data URL for the returned image
+                    const responseMime = part.inlineData.mimeType || 'image/png';
+                    return `data:${responseMime};base64,${part.inlineData.data}`;
+                }
             }
         }
     }
